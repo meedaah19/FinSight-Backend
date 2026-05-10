@@ -1,17 +1,18 @@
 import express from 'express';
 import User from '../models/user.js';
 import { auth } from '../middlewares/auth.js';
+import Expense from "../models/expenses.js";
 
 const router = new express.Router() 
 
-router.get('/user/me', auth, async(req, res) => {
+router.get('/user/profile', auth, async(req, res) => {
   try{
     const token = req.header('Authorization').replace('Bearer ', '');
     const user = await User.findOne({ 'tokens.token': token });
     if (!user) {
       return res.status(401).send({error: 'Please authenticate'})
     }
-    return res.send({user});
+    return res.send(user);
   }catch(error){
     res.status(500).send({error: 'Error occurred while fetching user data'})
   }
@@ -51,7 +52,7 @@ router.post('/user/logout', async(req, res) => {
   }
 });
 
-router.patch('/user/me', auth, async(req, res) => {
+router.patch('/user/profile', auth, async(req, res) => {
     try{
         const updates = Object.keys(req.body);
         const allowedUpdates = ['name', 'email', 'password', 'phoneNumber', 'budget'];
@@ -69,20 +70,32 @@ router.patch('/user/me', auth, async(req, res) => {
     }
 });
 
-router.post('/user/logout', auth, (req, res) => {
+router.post("/user/logout", auth, async (req, res) => {
   try {
-    req.user.tokens = req.user.tokens.filter((token) => token.token !== req.token);
-    req.user.save();
-    return res.send({message: 'Logout successful'});
-  }catch(e){
-    res.status(500).send({error: 'Error occurred while logging out'})
+    req.user.tokens = req.user.tokens.filter(
+      (token) => token.token !== req.token
+    );
+
+    await req.user.save();
+
+    return res.send({
+      message: "Logout successful",
+    });
+
+  } catch (e) {
+    res.status(500).send({
+      error: "Error occurred while logging out",
+    });
   }
-})
+});
 
 
-router.delete('/user/me', auth, async(req,res) => {
+router.delete('/user/profile', auth, async(req,res) => {
   try{
-    await req.user.deleteOne();
+    await Expense.deleteMany({ user: req.user._id });
+
+    await User.findByIdAndDelete(req.user._id);
+
     return res.send({message: 'User deleted successfully', user: req.user});
   }catch(e){
     res.status(500).send({error: 'Error occurred while deleting user'})
