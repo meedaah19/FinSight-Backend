@@ -25,7 +25,7 @@ controllerRouter.get("/expenses/insights", auth, async (req, res) => {
     summaryResult.forEach(item => {
       if (item._id === "income") totalIncome = item.total;
       if (item._id === "expense") totalExpense = item.total;
-      if (item._id === "assets") totalAssets = item.total;
+      if (item._id === "asset") totalAssets = item.total;
     });
 
     const balance = totalIncome - totalExpense;
@@ -70,10 +70,21 @@ controllerRouter.get("/expenses/insights", auth, async (req, res) => {
       const last = monthlyTrends[monthlyTrends.length - 1];
       const prev = monthlyTrends[monthlyTrends.length - 2];
 
-      if (last.totalExpense > prev.totalExpense) {
-        insights.push("You spent more this month than last month");
+     if (last.totalExpense > prev.totalExpense) {
+        insights.push({
+          message: "You spent more this month than last month",
+          type: "warning"
+        });
       } else if (last.totalExpense < prev.totalExpense) {
-        insights.push("You spent less this month than last month");
+        insights.push({
+          message: "You spent less this month than last month",
+          type: "success"
+        });
+      } else {
+        insights.push({
+          message: "Your spending is the same as last month",
+          type: "info"
+        });
       }
     }
 
@@ -82,26 +93,52 @@ controllerRouter.get("/expenses/insights", auth, async (req, res) => {
         item.totalExpense > max.totalExpense ? item : max
       );
 
-      insights.push(`Your highest spending month is ${highest.month}`);
+     insights.push({
+      message: `Your highest spending month is ${highest.month}`,
+      type: "info"
+    });
+    }
+
+    if (totalExpense > totalIncome) {
+      insights.push({
+        message: "You are spending more than you earn",
+        type: "danger"
+      });
+    } else if (totalIncome > totalExpense) {
+      insights.push({
+        message: "Good job! Your income is higher than your spending",
+        type: "success"
+      });
     }
 
     let warning = null;
+    let status = "good";
+    let message = "✅ Great! You are within your budget";
+    
     const budget = req.user.budget;
 
     if (budget > 0) {
-      if (totalExpense > budget) {
-        warning = "🚨 Budget exceeded!";
-      } else if (totalExpense > budget * 0.8) {
-        warning = "⚠️ You are close to your budget limit";
-      }
+    if (totalExpense > budget) {
+      status = "danger";
+      message = "🚨 Budget exceeded!";
+    } else if (totalExpense > budget * 0.8) {
+      status = "warning";
+      message = "⚠️ You are close to your budget limit";
     }
+  }
 
-    if (totalExpense > totalAssets) {
-    insights.push("You are spending more than you are investing");
+   if (totalExpense > totalAssets) {
+      insights.push({
+        message: "You are spending more than you are investing",
+        type: "danger"
+      });
     } else if (totalAssets > totalExpense) {
-    insights.push("Good job! You are investing more than spending");
+      insights.push({
+        message: "Good job! You are investing more than spending",
+        type: "success"
+      });
     }
-
+    
     res.send({
       summary: {
         totalIncome,
@@ -116,7 +153,8 @@ controllerRouter.get("/expenses/insights", auth, async (req, res) => {
     },
       monthlyTrends,        
       insights,         
-      warning
+      status,
+      message
     });
 
   } catch (error) {
@@ -157,19 +195,12 @@ controllerRouter.get("/expenses/summary", auth, async (req, res) => {
       },
     ]);
 
-    const totalSpent = result[0]?.total || 0;
     const budget = req.user.budget;
 
-    let warning = null;
-    let insights = [];
+    let status = "good";
+    let message = "✅ Great! You are within your budget";    
 
-    if (budget > 0) {
-    if (totalSpent > budget) {
-        warning = "🚨 Budget exceeded!";
-    } else if (totalSpent > budget * 0.8) {
-        warning = "⚠️ You are close to your budget limit";
-    }
-    }
+    let insights = [];
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -178,22 +209,57 @@ controllerRouter.get("/expenses/summary", auth, async (req, res) => {
     result.forEach((item) => {
       if (item._id === "income") totalIncome = item.total;
       if (item._id === "expense") totalExpense = item.total;
-      if (item._id === "assets") totalAssets = item.total;
+      if (item._id === "asset") totalAssets = item.total;
     });
 
-    if (totalExpense > totalAssets) {
-    insights.push("You are spending more than you are investing");
-    } else if (totalAssets > totalExpense) {
-    insights.push("Good job! You are investing more than spending");
+    const totalSpent = totalExpense;
+
+    if (budget > 0) {
+      if (totalSpent > budget) {
+        status = "danger";
+        message = "🚨 Budget exceeded!";
+      } else if (totalSpent > budget * 0.8) {
+        status = "warning";
+        message = "⚠️ You are close to your budget limit";
+      }
     }
 
-    if (totalExpense > totalIncome) {
-    insights.push("You are spending more than you earn");
+   if (totalExpense > totalAssets) {
+      insights.push({
+        message: "You are spending more than you are investing",
+        status: "danger"
+      });
+    } else if (totalAssets > totalExpense) {
+      insights.push({
+        message: "Good job! You are investing more than spending",
+        status: "success"
+      });
+    }
+
+     if (totalExpense > totalIncome) {
+      insights.push({
+        message: "You are spending more than you earn",
+        status: "danger"
+      });
+    } else if (totalIncome > totalExpense) {
+      insights.push({
+        message: "Good job! Your income is higher than your spending",
+        status: "success"
+      });
     }
 
     const balance = totalIncome - totalExpense;
 
-    res.send({ totalIncome, totalExpense, totalAssets, balance, insights, warning, totalSpent, budget });
+    res.send({ 
+      totalIncome, 
+      totalExpense, 
+      totalAssets, 
+      balance, 
+      insights, 
+      status, 
+      message, 
+      totalSpent, 
+      budget });
 
   } catch (error) {
     res.status(500).send({
@@ -265,7 +331,7 @@ controllerRouter.get("/expenses/monthly-trends", auth, async (req, res) => {
             },
             totalAssets: {
                 $sum: {
-                $cond: [{ $eq: ["$type", "type"] }, "$amount", 0]
+                $cond: [{ $eq: ["$type", "asset"] }, "$amount", 0]
                 }
             }
         }
