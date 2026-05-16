@@ -128,8 +128,15 @@ router.post("/user/forgot-password", async (req, res) => {
 
     const resetLink = `https://finsight-frontend-sooty.vercel.app/reset-password/${resetToken}`;
 
-    await sendResetEmail(user.email, resetLink);
+    try {
+      await sendResetEmail(user.email, resetLink);
+    } catch (err) {
+      console.error("Email failed:", err);
+    }
 
+      if (!sendResetEmail) {
+      console.log("Email service not configured");
+    } 
     return res.send({ message: "Reset link sent to email" });
 
   } catch (e) {
