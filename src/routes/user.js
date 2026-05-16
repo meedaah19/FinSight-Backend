@@ -126,24 +126,31 @@ router.post("/user/forgot-password", async (req, res) => {
 
     await user.save();
 
-    const resetLink = `https://finsight-frontend-sooty.vercel.app/reset-password/${resetToken}`;
+    const resetLink =
+      `https://finsight-frontend-sooty.vercel.app/reset-password/${resetToken}`;
 
+    // try sending email
     try {
       await sendResetEmail(user.email, resetLink);
+
+      return res.send({
+        message: "Reset link sent to email"
+      });
+
     } catch (err) {
       console.error("Email failed:", err);
+
+      return res.status(500).send({
+        error: "Failed to send reset email"
+      });
     }
 
-    if (!sendResetEmail) {
-    return res.status(500).send({
-      error: "Failed to send email. Please try again later."
-    });
-}
-    return res.send({ message: "Reset link sent to email" });
-
   } catch (e) {
-    console.error("Forgot password error:", e); // IMPORTANT
-    return res.status(500).send({ error: e.message });
+    console.error("Forgot password error:", e);
+
+    return res.status(500).send({
+      error: e.message
+    });
   }
 });
 
