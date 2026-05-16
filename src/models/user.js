@@ -51,6 +51,8 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
     tokens: [{
     token: {
         type: String,
@@ -67,8 +69,7 @@ async function () {
     if (user.isModified('password')) {
         user.password = await bcrypt.hash(user.password, 8);
     }
-    }
-)
+});
 
 userSchema.methods.generateAuthToken = async function () {
     const user = this;

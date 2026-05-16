@@ -2,6 +2,9 @@ import express from 'express';
 import User from '../models/user.js';
 import { auth } from '../middlewares/auth.js';
 import Expense from "../models/expenses.js";
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import sendResetEmail from "../email/account.js";
 
 const router = new express.Router() 
 
@@ -100,6 +103,96 @@ router.delete('/user/profile', auth, async(req,res) => {
   }catch(e){
     res.status(500).send({error: 'Error occurred while deleting user'})
   }
-})
+});
+
+router.post("/user/forgot-password", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      email: req.body.email,
+    });
+
+    if (!user) {
+      return res.status(404).send({
+        error: "User not found",
+      });
+    }
+
+    const resetToken = crypto
+      .randomBytes(32)
+      .toString("hex");
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires =
+      Date.now() + 3600000; // 1 hour
+
+    await user.save();
+
+    const resetLink =
+      `http://localhost:5173/reset-password/${resetToken}`;
+
+    await sendResetEmail(user.email, resetLink);
+
+    res.send({
+      message: "Reset link sent to email",
+    });
+
+  } catch (e) {
+    res.status(500).send({
+      error: e.message,
+    });
+  }
+});
+
+router.post("/user/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).send({ message: "Invalid or expired token" });
+  }
+
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save();
+
+  res.send({ message: "Password reset successful" });
+});
+
+router.patch("/user/change-password", auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      req.user.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).send({
+        error: "Current password is incorrect"
+      });
+    }
+
+    req.user.password = newPassword;
+
+    await req.user.save();
+
+    res.send({
+      message: "Password updated successfully"
+    });
+
+  } catch (e) {
+    res.status(500).send({
+      error: e.message
+    });
+  }
+});
 
 export {router}
