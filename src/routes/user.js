@@ -107,39 +107,34 @@ router.delete('/user/profile', auth, async(req,res) => {
 
 router.post("/user/forgot-password", async (req, res) => {
   try {
-    const user = await User.findOne({
-      email: req.body.email,
-    });
+    const { email } = req.body;
 
-    if (!user) {
-      return res.status(404).send({
-        error: "User not found",
-      });
+    if (!email) {
+      return res.status(400).send({ error: "Email is required" });
     }
 
-    const resetToken = crypto
-      .randomBytes(32)
-      .toString("hex");
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).send({ error: "User not found" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires =
-      Date.now() + 3600000; // 1 hour
+    user.resetPasswordExpires = Date.now() + 3600000;
 
     await user.save();
 
-    const resetLink =
-      `https://finsight-frontend-sooty.vercel.app/reset-password/${resetToken}`;
+    const resetLink = `https://finsight-frontend-sooty.vercel.app/reset-password/${resetToken}`;
 
     await sendResetEmail(user.email, resetLink);
 
-    res.send({
-      message: "Reset link sent to email",
-    });
+    return res.send({ message: "Reset link sent to email" });
 
   } catch (e) {
-    res.status(500).send({
-      error: e.message,
-    });
+    console.error("Forgot password error:", e); // IMPORTANT
+    return res.status(500).send({ error: e.message });
   }
 });
 
