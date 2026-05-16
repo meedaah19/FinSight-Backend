@@ -134,6 +134,12 @@ router.post("/user/forgot-password", async (req, res) => {
       console.error("Email failed:", err);
     }
 
+    if (!emailSent) {
+    return res.status(500).send({
+      error: "Failed to send email. Please try again later."
+    });
+}
+
       if (!sendResetEmail) {
       console.log("Email service not configured");
     } 
