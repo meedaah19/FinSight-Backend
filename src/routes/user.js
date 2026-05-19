@@ -74,7 +74,7 @@ router.patch('/user/profile', auth, async(req, res) => {
         await req.user.save();
 
         return res.send(req.user);
-    }catch(e){
+    }catch(error){
       return res.status(400).send({
       error: error.message
     });
@@ -93,7 +93,7 @@ router.post("/user/logout", auth, async (req, res) => {
       message: "Logout successful",
     });
 
-  } catch (e) {
+  } catch (error) {
      return res.status(400).send({
       error: error.message
     });
@@ -108,7 +108,7 @@ router.delete('/user/profile', auth, async(req,res) => {
     await User.findByIdAndDelete(req.user._id);
 
     return res.send({message: 'User deleted successfully', user: req.user});
-  }catch(e){
+  }catch(error){
      return res.status(400).send({
       error: error.message
     });
@@ -155,7 +155,7 @@ router.post("/user/forgot-password", async (req, res) => {
       });
     }
 
-  } catch (e) {
+  } catch (error) {
      return res.status(400).send({
       error: error.message
     });
@@ -207,7 +207,7 @@ router.patch("/user/change-password", auth, async (req, res) => {
       message: "Password updated successfully"
     });
 
-  } catch (e) {
+  } catch (error) {
      return res.status(400).send({
       error: error.message
     });
