@@ -12,6 +12,6 @@ const sendResetEmail = async (email, resetLink) => {
       <a href="${resetLink}">Reset Password</a>
     `
   });
-};
+}; 
 
 export default sendResetEmail;

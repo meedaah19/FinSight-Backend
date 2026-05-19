@@ -17,7 +17,9 @@ router.get('/user/profile', auth, async(req, res) => {
     }
     return res.send(user);
   }catch(error){
-    res.status(500).send({error: 'Error occurred while fetching user data'})
+     return res.status(400).send({
+      error: error.message
+    });
   }
 })
 
@@ -29,7 +31,7 @@ router.post('/user/signup', async(req, res) => {
     const token = await user.generateAuthToken();
     return res.status(201).send({message: 'User created successfully', user, token})
   }catch(error){
-    res.status(400).send({error: error.message})
+    return res.status(400).send({error: error.message})
   }
 });
 
@@ -41,7 +43,9 @@ router.post('/user/login', async(req, res) => {
     return res.send({message: 'Login successful', user, token})
 
   } catch (error) {
-    res.status(400).send({error: 'Invalid email or password'})
+     return res.status(400).send({
+      error: error.message
+    });
   }
 });
 
@@ -51,7 +55,9 @@ router.post('/user/logout', async(req, res) => {
     await User.updateOne({token}, {$pull: {tokens: {token}}});
     return res.send({message: 'Logout successful'});
   } catch (error) {
-    res.status(500).send({error: 'Error occurred while logging out'});
+     return res.status(400).send({
+      error: error.message
+    });
   }
 });
 
@@ -69,7 +75,9 @@ router.patch('/user/profile', auth, async(req, res) => {
 
         return res.send(req.user);
     }catch(e){
-        res.status(400).send(e);
+      return res.status(400).send({
+      error: error.message
+    });
     }
 });
 
@@ -86,8 +94,8 @@ router.post("/user/logout", auth, async (req, res) => {
     });
 
   } catch (e) {
-    res.status(500).send({
-      error: "Error occurred while logging out",
+     return res.status(400).send({
+      error: error.message
     });
   }
 });
@@ -101,7 +109,9 @@ router.delete('/user/profile', auth, async(req,res) => {
 
     return res.send({message: 'User deleted successfully', user: req.user});
   }catch(e){
-    res.status(500).send({error: 'Error occurred while deleting user'})
+     return res.status(400).send({
+      error: error.message
+    });
   }
 });
 
@@ -146,10 +156,8 @@ router.post("/user/forgot-password", async (req, res) => {
     }
 
   } catch (e) {
-    console.error("Forgot password error:", e);
-
-    return res.status(500).send({
-      error: e.message
+     return res.status(400).send({
+      error: error.message
     });
   }
 });
@@ -200,8 +208,8 @@ router.patch("/user/change-password", auth, async (req, res) => {
     });
 
   } catch (e) {
-    res.status(500).send({
-      error: e.message
+     return res.status(400).send({
+      error: error.message
     });
   }
 });
